@@ -35,6 +35,16 @@ export interface NewDoctorInput {
   schedules: { dayOfWeek: number; startTime: string; endTime: string; slotMinutes: number }[];
 }
 
+export interface Appointment {
+  id: string;
+  startTime: string;
+  endTime: string;
+  status: "PENDING" | "CONFIRMED" | "CANCELLED" | "COMPLETED" | "NO_SHOW";
+  notes: string | null;
+  doctor: { id: string; name: string; specialty: string };
+  patient: { id: string; name: string; phoneNumber: string | null };
+}
+
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
@@ -84,4 +94,8 @@ export function updateDoctor(
     method: "PATCH",
     body: JSON.stringify(input),
   });
+}
+
+export function listAppointments(): Promise<Appointment[]> {
+  return apiFetch<Appointment[]>("/appointments");
 }

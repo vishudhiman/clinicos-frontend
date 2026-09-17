@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { HeartPulse } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -76,17 +77,23 @@ export function ChatWindow({
       transition={{ duration: 0.4, ease: "easeOut" }}
       className="w-full max-w-lg"
     >
-      <Card className="flex h-[80vh] w-full flex-col overflow-hidden p-0 shadow-xl shadow-zinc-900/5">
-        <div className="flex items-center justify-between border-b px-4 py-3">
-          <div>
-            <h1 className="text-base font-semibold">ClinicOS Assistant</h1>
-            <p className="text-xs text-zinc-500">{patientName}</p>
+      <Card className="flex h-[80vh] w-full flex-col overflow-hidden p-0 shadow-xl shadow-slate-900/5">
+        <div className="flex items-center gap-3 border-b border-border px-4 py-3">
+          <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+            <HeartPulse className="size-4" aria-hidden="true" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <h1 className="text-sm font-semibold">ClinicOS Assistant</h1>
+            <p className="truncate text-xs text-muted-foreground">{patientName}</p>
           </div>
-          <motion.span
-            className="flex h-2 w-2 rounded-full bg-emerald-500"
-            animate={{ opacity: [1, 0.4, 1] }}
-            transition={{ duration: 2, repeat: Infinity }}
-          />
+          <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <motion.span
+              className="flex h-2 w-2 rounded-full bg-emerald-500"
+              animate={{ opacity: [1, 0.4, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            />
+            Online
+          </span>
         </div>
 
         <ScrollArea className="flex-1 px-4 py-4">
@@ -103,8 +110,8 @@ export function ChatWindow({
                   <div
                     className={`max-w-[80%] whitespace-pre-wrap rounded-2xl px-4 py-2 text-sm ${
                       m.role === "PATIENT"
-                        ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
-                        : "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100"
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted text-foreground"
                     }`}
                   >
                     {m.content}
@@ -118,11 +125,11 @@ export function ChatWindow({
                 animate={{ opacity: 1 }}
                 className="flex justify-start"
               >
-                <div className="flex items-center gap-1 rounded-2xl bg-zinc-100 px-4 py-3 dark:bg-zinc-800">
+                <div className="flex items-center gap-1 rounded-2xl bg-muted px-4 py-3">
                   {[0, 1, 2].map((i) => (
                     <motion.span
                       key={i}
-                      className="h-1.5 w-1.5 rounded-full bg-zinc-400"
+                      className="h-1.5 w-1.5 rounded-full bg-muted-foreground/60"
                       animate={{ y: [0, -4, 0] }}
                       transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.15 }}
                     />
@@ -136,7 +143,7 @@ export function ChatWindow({
                   <button
                     key={s}
                     onClick={() => submitMessage(s)}
-                    className="rounded-full border border-zinc-200 px-3 py-1.5 text-xs text-zinc-600 transition-colors hover:border-zinc-400 hover:text-foreground dark:border-zinc-700 dark:text-zinc-400"
+                    className="rounded-full border border-border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground"
                   >
                     {s}
                   </button>
@@ -147,9 +154,9 @@ export function ChatWindow({
           </div>
         </ScrollArea>
 
-        {error && <p className="px-4 pb-1 text-xs text-red-500">{error}</p>}
+        {error && <p className="px-4 pb-1 text-xs text-destructive">{error}</p>}
 
-        <form onSubmit={handleSend} className="flex gap-2 border-t p-3">
+        <form onSubmit={handleSend} className="flex gap-2 border-t border-border p-3">
           <Input
             placeholder="Type a message..."
             value={input}

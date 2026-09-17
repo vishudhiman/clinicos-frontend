@@ -1,16 +1,17 @@
 import type { Metadata } from "next";
-import { Poppins, Geist_Mono } from "next/font/google";
-import { Nav } from "@/components/nav";
+import { Figtree, JetBrains_Mono } from "next/font/google";
+import { AppShell } from "@/components/layout/app-shell";
 import { Providers } from "@/components/providers";
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
-const poppins = Poppins({
+const figtree = Figtree({
   variable: "--font-sans",
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
 });
 
-const geistMono = Geist_Mono({
+const jetbrainsMono = JetBrains_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
@@ -24,12 +25,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="en"
-      className={`${poppins.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
+      className={`${figtree.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
         <Providers>
-          <Nav />
-          <div className="flex flex-1 flex-col">{children}</div>
+          <AppShell>{children}</AppShell>
+          <Toaster />
         </Providers>
       </body>
     </html>
