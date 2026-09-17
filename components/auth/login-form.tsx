@@ -34,7 +34,8 @@ export function LoginForm({ googleEnabled }: { googleEnabled: boolean }) {
     const callbackUrl = searchParams.get("callbackUrl");
     const session = await getSession();
     const destination =
-      callbackUrl ?? (session?.user.role === "DOCTOR" || session?.user.role === "ADMIN" ? "/doctors" : "/");
+      callbackUrl ??
+      (session?.user.role === "DOCTOR" || session?.user.role === "ADMIN" ? "/dashboard" : "/");
     router.push(destination);
     router.refresh();
   }
@@ -70,7 +71,7 @@ export function LoginForm({ googleEnabled }: { googleEnabled: boolean }) {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
-              className="text-sm text-red-500"
+              className="text-sm text-destructive"
             >
               {error}
             </motion.p>
@@ -88,7 +89,7 @@ export function LoginForm({ googleEnabled }: { googleEnabled: boolean }) {
         <>
           <div className="flex items-center gap-3">
             <Separator className="flex-1" />
-            <span className="text-xs text-zinc-400">or</span>
+            <span className="text-xs text-muted-foreground">or</span>
             <Separator className="flex-1" />
           </div>
           <motion.div whileTap={{ scale: 0.98 }}>
@@ -104,7 +105,7 @@ export function LoginForm({ googleEnabled }: { googleEnabled: boolean }) {
         </>
       )}
 
-      <p className="text-center text-sm text-zinc-500">
+      <p className="text-center text-sm text-muted-foreground">
         No account?{" "}
         <Link href="/signup" className="font-medium text-foreground underline-offset-4 hover:underline">
           Sign up

@@ -51,7 +51,7 @@ export function SignupForm({ googleEnabled }: { googleEnabled: boolean }) {
     }
 
     const callbackUrl = searchParams.get("callbackUrl");
-    router.push(callbackUrl ?? (role === "DOCTOR" ? "/doctors" : "/"));
+    router.push(callbackUrl ?? (role === "DOCTOR" ? "/dashboard" : "/"));
     router.refresh();
   }
 
@@ -64,15 +64,15 @@ export function SignupForm({ googleEnabled }: { googleEnabled: boolean }) {
             type="button"
             onClick={() => setRole(r)}
             className={cn(
-              "relative z-10 rounded-full py-1.5 font-medium transition-colors",
-              role === r ? "text-white dark:text-zinc-900" : "text-zinc-500"
+              "relative z-10 cursor-pointer rounded-full py-1.5 font-medium transition-colors",
+              role === r ? "text-primary-foreground" : "text-muted-foreground"
             )}
           >
             {r === "PATIENT" ? "I'm a patient" : "I'm a doctor"}
           </button>
         ))}
         <motion.div
-          className="absolute inset-y-1 w-[calc(50%-4px)] rounded-full bg-zinc-900 dark:bg-zinc-100"
+          className="absolute inset-y-1 w-[calc(50%-4px)] rounded-full bg-primary"
           animate={{ x: role === "PATIENT" ? 4 : "calc(100% + 4px)" }}
           transition={{ type: "spring", bounce: 0.2, duration: 0.4 }}
         />
@@ -130,7 +130,7 @@ export function SignupForm({ googleEnabled }: { googleEnabled: boolean }) {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
-              className="text-sm text-red-500"
+              className="text-sm text-destructive"
             >
               {error}
             </motion.p>
@@ -148,7 +148,7 @@ export function SignupForm({ googleEnabled }: { googleEnabled: boolean }) {
         <>
           <div className="flex items-center gap-3">
             <Separator className="flex-1" />
-            <span className="text-xs text-zinc-400">or</span>
+            <span className="text-xs text-muted-foreground">or</span>
             <Separator className="flex-1" />
           </div>
           <motion.div whileTap={{ scale: 0.98 }}>
@@ -164,7 +164,7 @@ export function SignupForm({ googleEnabled }: { googleEnabled: boolean }) {
         </>
       )}
 
-      <p className="text-center text-sm text-zinc-500">
+      <p className="text-center text-sm text-muted-foreground">
         Already have an account?{" "}
         <Link href="/login" className="font-medium text-foreground underline-offset-4 hover:underline">
           Sign in
