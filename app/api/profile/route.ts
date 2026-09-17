@@ -9,7 +9,9 @@ export async function GET() {
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   if (session.user.role === "PATIENT" && session.user.patientId) {
-    const res = await fetch(`${API_URL}/auth/profile?patientId=${session.user.patientId}`);
+    const res = await fetch(`${API_URL}/auth/profile?patientId=${session.user.patientId}`, {
+      headers: { Authorization: `Bearer ${session.accessToken}` },
+    });
     const data = await res.json();
     return NextResponse.json(data, { status: res.status });
   }
@@ -43,7 +45,10 @@ export async function PATCH(request: Request) {
 
   const res = await fetch(`${API_URL}/auth/profile`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session.accessToken}`,
+    },
     body: JSON.stringify({ patientId: session.user.patientId, ...parsed.data }),
   });
 

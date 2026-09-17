@@ -1,3 +1,5 @@
+import { getSession } from "next-auth/react";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4002";
 
 export interface Patient {
@@ -77,9 +79,14 @@ export interface AppNotification {
 }
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
+  const session = await getSession();
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
-    headers: { "Content-Type": "application/json", ...options?.headers },
+    headers: {
+      "Content-Type": "application/json",
+      ...(session?.accessToken ? { Authorization: `Bearer ${session.accessToken}` } : {}),
+      ...options?.headers,
+    },
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
