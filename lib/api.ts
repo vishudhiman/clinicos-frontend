@@ -12,6 +12,29 @@ export interface ChatResponse {
   intent: string;
 }
 
+export interface DoctorSchedule {
+  id: string;
+  dayOfWeek: number;
+  startTime: string;
+  endTime: string;
+  slotMinutes: number;
+}
+
+export interface Doctor {
+  id: string;
+  name: string;
+  specialty: string;
+  bio: string | null;
+  schedules: DoctorSchedule[];
+}
+
+export interface NewDoctorInput {
+  name: string;
+  specialty: string;
+  bio?: string;
+  schedules: { dayOfWeek: number; startTime: string; endTime: string; slotMinutes: number }[];
+}
+
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
@@ -39,5 +62,26 @@ export function sendChatMessage(params: {
   return apiFetch<ChatResponse>("/chat", {
     method: "POST",
     body: JSON.stringify(params),
+  });
+}
+
+export function listDoctors(): Promise<Doctor[]> {
+  return apiFetch<Doctor[]>("/doctors");
+}
+
+export function createDoctor(input: NewDoctorInput): Promise<Doctor> {
+  return apiFetch<Doctor>("/doctors", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function updateDoctor(
+  id: string,
+  input: Partial<Omit<NewDoctorInput, "schedules">> & { schedules?: NewDoctorInput["schedules"] }
+): Promise<Doctor> {
+  return apiFetch<Doctor>(`/doctors/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
   });
 }
