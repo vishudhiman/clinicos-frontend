@@ -1,13 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { MessageCircle, CalendarDays, Stethoscope, Bell, UserRound } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { listAppointments } from "@/lib/api";
-import { deriveNotifications, getReadIds } from "@/lib/notifications";
 
 export const PATIENT_NAV_ITEMS = [
   { href: "/", label: "Assistant", icon: MessageCircle },
@@ -17,32 +14,8 @@ export const PATIENT_NAV_ITEMS = [
   { href: "/profile", label: "Profile", icon: UserRound },
 ];
 
-function useUnreadCount(patientId?: string | null) {
-  const [count, setCount] = useState(0);
-
-  useEffect(() => {
-    if (!patientId) return;
-    let cancelled = false;
-    listAppointments()
-      .then((appts) => {
-        if (cancelled) return;
-        const mine = appts.filter((a) => a.patient.id === patientId);
-        const notifications = deriveNotifications(mine);
-        const read = getReadIds();
-        setCount(notifications.filter((n) => !read.has(n.id)).length);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [patientId]);
-
-  return count;
-}
-
-export function PatientDesktopNav({ patientId }: { patientId?: string | null }) {
+export function PatientDesktopNav({ unreadCount }: { unreadCount: number }) {
   const pathname = usePathname();
-  const unread = useUnreadCount(patientId);
 
   return (
     <nav className="hidden items-center gap-1 md:flex">
@@ -67,9 +40,9 @@ export function PatientDesktopNav({ patientId }: { patientId?: string | null }) 
             )}
             <Icon className="relative size-4" aria-hidden="true" />
             <span className="relative">{item.label}</span>
-            {item.href === "/notifications" && unread > 0 && (
+            {item.href === "/notifications" && unreadCount > 0 && (
               <span className="relative flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-semibold text-primary-foreground">
-                {unread > 9 ? "9+" : unread}
+                {unreadCount > 9 ? "9+" : unreadCount}
               </span>
             )}
           </Link>
@@ -79,9 +52,8 @@ export function PatientDesktopNav({ patientId }: { patientId?: string | null }) 
   );
 }
 
-export function PatientBottomNav({ patientId }: { patientId?: string | null }) {
+export function PatientBottomNav({ unreadCount }: { unreadCount: number }) {
   const pathname = usePathname();
-  const unread = useUnreadCount(patientId);
 
   return (
     <nav
@@ -103,9 +75,9 @@ export function PatientBottomNav({ patientId }: { patientId?: string | null }) {
             >
               <span className="relative">
                 <Icon className="size-5" aria-hidden="true" />
-                {item.href === "/notifications" && unread > 0 && (
+                {item.href === "/notifications" && unreadCount > 0 && (
                   <span className="absolute -right-1.5 -top-1.5 flex size-3.5 items-center justify-center rounded-full bg-primary text-[9px] font-semibold text-primary-foreground">
-                    {unread > 9 ? "9+" : unread}
+                    {unreadCount > 9 ? "9+" : unreadCount}
                   </span>
                 )}
               </span>

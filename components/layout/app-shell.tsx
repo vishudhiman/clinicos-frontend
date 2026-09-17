@@ -10,7 +10,9 @@ import { Sidebar, MobileSidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { UserMenu } from "@/components/layout/user-menu";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { NotificationBell } from "@/components/layout/notification-bell";
 import { PatientDesktopNav, PatientBottomNav } from "@/components/layout/patient-nav";
+import { usePatientNotifications } from "@/hooks/use-patient-notifications";
 
 const AUTH_PATHS = ["/login", "/signup"];
 
@@ -18,6 +20,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { data: session, status } = useSession();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { notifications, unreadCount, markRead } = usePatientNotifications(session?.user.patientId);
 
   if (AUTH_PATHS.includes(pathname)) {
     return <>{children}</>;
@@ -59,9 +62,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </span>
           <span className="hidden text-sm font-semibold tracking-tight sm:inline">ClinicOS</span>
         </Link>
-        <PatientDesktopNav patientId={session?.user.patientId} />
+        <PatientDesktopNav unreadCount={unreadCount} />
         <div className="flex shrink-0 items-center gap-1">
           <ThemeToggle />
+          <NotificationBell
+            patientId={session?.user.patientId}
+            notifications={notifications}
+            unreadCount={unreadCount}
+            onMarkRead={markRead}
+          />
           {session && <UserMenu />}
         </div>
       </header>
@@ -74,7 +83,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       >
         {children}
       </motion.main>
-      <PatientBottomNav patientId={session?.user.patientId} />
+      <PatientBottomNav unreadCount={unreadCount} />
     </div>
   );
 }

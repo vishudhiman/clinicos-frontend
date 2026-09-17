@@ -51,6 +51,31 @@ export interface Slot {
   endTime: string;
 }
 
+export type NotificationType =
+  | "BOOKING_CONFIRMATION"
+  | "REMINDER_24H"
+  | "REMINDER_1H"
+  | "CANCELLATION"
+  | "RESCHEDULE";
+
+export type NotificationChannel = "EMAIL" | "IN_APP";
+export type NotificationStatus = "PENDING" | "SENT" | "FAILED" | "SKIPPED";
+
+export interface AppNotification {
+  id: string;
+  patientId: string;
+  appointmentId: string;
+  type: NotificationType;
+  channel: NotificationChannel;
+  status: NotificationStatus;
+  title: string;
+  message: string;
+  scheduledFor: string | null;
+  sentAt: string | null;
+  readAt: string | null;
+  createdAt: string;
+}
+
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     ...options,
@@ -92,6 +117,10 @@ export function createDoctor(input: NewDoctorInput): Promise<Doctor> {
   });
 }
 
+export function listAppointments(): Promise<Appointment[]> {
+  return apiFetch<Appointment[]>("/appointments");
+}
+
 export function updateDoctor(
   id: string,
   input: Partial<Omit<NewDoctorInput, "schedules">> & { schedules?: NewDoctorInput["schedules"] }
@@ -100,10 +129,6 @@ export function updateDoctor(
     method: "PATCH",
     body: JSON.stringify(input),
   });
-}
-
-export function listAppointments(): Promise<Appointment[]> {
-  return apiFetch<Appointment[]>("/appointments");
 }
 
 export function getDoctorAvailability(doctorId: string, date: Date): Promise<{ slots: Slot[] }> {
@@ -135,5 +160,20 @@ export function rescheduleAppointment(
   return apiFetch<Appointment>(`/appointments/${id}/reschedule`, {
     method: "POST",
     body: JSON.stringify({ newStartTime, newEndTime }),
+  });
+}
+
+export function listNotifications(patientId: string): Promise<AppNotification[]> {
+  return apiFetch<AppNotification[]>(`/notifications?patientId=${patientId}`);
+}
+
+export function markNotificationRead(id: string): Promise<AppNotification> {
+  return apiFetch<AppNotification>(`/notifications/${id}/read`, { method: "POST" });
+}
+
+export function markAllNotificationsRead(patientId: string): Promise<{ ok: true }> {
+  return apiFetch<{ ok: true }>("/notifications/read-all", {
+    method: "POST",
+    body: JSON.stringify({ patientId }),
   });
 }

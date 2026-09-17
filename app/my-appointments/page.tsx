@@ -3,7 +3,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
-import { CalendarDays, CalendarClock, History, type LucideIcon } from "lucide-react";
+import {
+  CalendarDays,
+  CalendarClock,
+  History,
+  Check,
+  Clock3,
+  type LucideIcon,
+} from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -12,12 +19,14 @@ import { StatusBadge } from "@/components/status-badge";
 import { EmptyState } from "@/components/empty-state";
 import { RescheduleDialog } from "@/components/appointments/reschedule-dialog";
 import { CancelDialog } from "@/components/appointments/cancel-dialog";
-import { listAppointments, type Appointment } from "@/lib/api";
+import { listAppointments, listNotifications, type Appointment, type AppNotification } from "@/lib/api";
 import { formatDateTime } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 export default function MyAppointmentsPage() {
   const { data: session } = useSession();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [rescheduling, setRescheduling] = useState<Appointment | null>(null);
@@ -27,8 +36,12 @@ export default function MyAppointmentsPage() {
     if (!session?.user.patientId) return;
     setLoading(true);
     try {
-      const all = await listAppointments();
+      const [all, notifs] = await Promise.all([
+        listAppointments(),
+        listNotifications(session.user.patientId),
+      ]);
       setAppointments(all.filter((a) => a.patient.id === session.user.patientId));
+      setNotifications(notifs);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load appointments");
@@ -73,18 +86,21 @@ export default function MyAppointmentsPage() {
         <TabsContent value="upcoming" className="mt-4">
           <AppointmentList
             appointments={upcoming}
+            notifications={notifications}
             loading={loading}
             emptyIcon={CalendarClock}
             emptyTitle="No upcoming appointments"
             emptyDescription="Ask the AI Assistant to book one, or find a doctor to get started."
             onReschedule={setRescheduling}
             onCancel={setCancelling}
+            showReminders
           />
         </TabsContent>
 
         <TabsContent value="past" className="mt-4">
           <AppointmentList
             appointments={past}
+            notifications={notifications}
             loading={loading}
             emptyIcon={History}
             emptyTitle="No past appointments yet"
@@ -112,22 +128,65 @@ export default function MyAppointmentsPage() {
   );
 }
 
+function ReminderStatus({ notifications, appointmentId }: { notifications: AppNotification[]; appointmentId: string }) {
+  const reminders = notifications.filter(
+    (n) =>
+      n.appointmentId === appointmentId &&
+      (n.type === "REMINDER_24H" || n.type === "REMINDER_1H") &&
+      n.status !== "SKIPPED"
+  );
+
+  // One badge per reminder type — a reminder goes out on two channels (email + in-app),
+  // but the patient only needs to know whether *the reminder* went out, not per-channel detail.
+  const byType = new Map<string, boolean>();
+  for (const n of reminders) {
+    byType.set(n.type, (byType.get(n.type) ?? false) || n.status === "SENT");
+  }
+  if (byType.size === 0) return null;
+
+  return (
+    <div className="mt-2 flex flex-wrap gap-2">
+      {[...byType.entries()].map(([type, sent]) => {
+        const label = type === "REMINDER_24H" ? "24h reminder" : "1h reminder";
+        return (
+          <span
+            key={type}
+            className={cn(
+              "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium",
+              sent
+                ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                : "bg-muted text-muted-foreground"
+            )}
+          >
+            {sent ? <Check className="size-3" /> : <Clock3 className="size-3" />}
+            {label} {sent ? "sent" : "scheduled"}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
 function AppointmentList({
   appointments,
+  notifications,
   loading,
   emptyIcon,
   emptyTitle,
   emptyDescription,
   onReschedule,
   onCancel,
+  showReminders,
 }: {
   appointments: Appointment[];
+  notifications: AppNotification[];
   loading: boolean;
   emptyIcon: LucideIcon;
   emptyTitle: string;
   emptyDescription?: string;
   onReschedule?: (a: Appointment) => void;
   onCancel?: (a: Appointment) => void;
+  showReminders?: boolean;
 }) {
   if (loading) {
     return (
@@ -169,6 +228,8 @@ function AppointmentList({
                   </div>
                   <StatusBadge status={a.status} />
                 </div>
+
+                {showReminders && <ReminderStatus notifications={notifications} appointmentId={a.id} />}
 
                 {canManage && (
                   <div className="mt-3 flex gap-2">

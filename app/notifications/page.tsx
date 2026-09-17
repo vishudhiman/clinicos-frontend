@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Bell, BellOff } from "lucide-react";
@@ -8,63 +8,24 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EmptyState } from "@/components/empty-state";
-import { listAppointments } from "@/lib/api";
 import {
-  deriveNotifications,
-  getReadIds,
-  markAsRead,
-  markAllAsRead,
-  type AppNotification,
-  type NotificationKind,
-} from "@/lib/notifications";
+  usePatientNotifications,
+  requestBrowserNotificationPermission,
+  getBrowserNotificationPermission,
+} from "@/hooks/use-patient-notifications";
+import { NOTIFICATION_META, timeAgo } from "@/lib/notifications";
 import { cn } from "@/lib/utils";
-
-const KIND_META: Record<NotificationKind, { icon: typeof Bell; className: string }> = {
-  confirmed: { icon: Bell, className: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
-  reminder: { icon: Bell, className: "bg-primary/10 text-primary" },
-  cancelled: { icon: Bell, className: "bg-red-500/10 text-red-600 dark:text-red-400" },
-  completed: { icon: Bell, className: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
-  no_show: { icon: Bell, className: "bg-zinc-500/10 text-zinc-500" },
-};
-
-function timeAgo(iso: string) {
-  const diffMs = Date.now() - new Date(iso).getTime();
-  const mins = Math.round(diffMs / 60_000);
-  if (Math.abs(mins) < 60) return mins <= 0 ? "just now" : `${mins}m ago`;
-  const hours = Math.round(mins / 60);
-  if (Math.abs(hours) < 24) return `${hours}h ago`;
-  const days = Math.round(hours / 24);
-  return `${days}d ago`;
-}
 
 export default function NotificationsPage() {
   const { data: session } = useSession();
-  const [notifications, setNotifications] = useState<AppNotification[]>([]);
-  const [readIds, setReadIds] = useState<Set<string>>(new Set());
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { notifications, unreadCount, loading, markRead, markAllRead } = usePatientNotifications(
+    session?.user.patientId
+  );
+  const [permission, setPermission] = useState<NotificationPermission | "unsupported">("default");
 
   useEffect(() => {
-    if (!session?.user.patientId) return;
-    listAppointments()
-      .then((all) => {
-        const mine = all.filter((a) => a.patient.id === session.user.patientId);
-        setNotifications(deriveNotifications(mine));
-        setReadIds(getReadIds());
-      })
-      .catch((err) => setError(err instanceof Error ? err.message : "Failed to load notifications"))
-      .finally(() => setLoading(false));
-  }, [session?.user.patientId]);
-
-  const unreadCount = useMemo(
-    () => notifications.filter((n) => !readIds.has(n.id)).length,
-    [notifications, readIds]
-  );
-
-  function handleMarkAllRead() {
-    markAllAsRead(notifications.map((n) => n.id));
-    setReadIds(getReadIds());
-  }
+    setPermission(getBrowserNotificationPermission());
+  }, []);
 
   return (
     <div className="mx-auto flex w-full max-w-2xl flex-1 flex-col gap-4 p-4 md:p-6">
@@ -74,13 +35,32 @@ export default function NotificationsPage() {
           <p className="text-sm text-muted-foreground">Confirmations, reminders, and updates.</p>
         </div>
         {unreadCount > 0 && (
-          <Button size="sm" variant="outline" onClick={handleMarkAllRead}>
+          <Button size="sm" variant="outline" onClick={markAllRead}>
             Mark all as read
           </Button>
         )}
       </div>
 
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {permission !== "granted" && permission !== "unsupported" && (
+        <Card className="flex items-center justify-between gap-3 border-dashed p-3">
+          <div className="flex items-center gap-2 text-sm">
+            <BellOff className="size-4 text-muted-foreground" />
+            <span className="text-muted-foreground">
+              Enable browser notifications to get reminders even when this tab isn&apos;t open.
+            </span>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              requestBrowserNotificationPermission();
+              setTimeout(() => setPermission(getBrowserNotificationPermission()), 300);
+            }}
+          >
+            Enable
+          </Button>
+        </Card>
+      )}
 
       {loading ? (
         <div className="flex flex-col gap-3">
@@ -98,9 +78,9 @@ export default function NotificationsPage() {
         <div className="flex flex-col gap-2">
           <AnimatePresence initial={false}>
             {notifications.map((n, i) => {
-              const meta = KIND_META[n.kind];
+              const meta = NOTIFICATION_META[n.type];
               const Icon = meta.icon;
-              const isRead = readIds.has(n.id);
+              const isRead = !!n.readAt;
               return (
                 <motion.button
                   key={n.id}
@@ -108,16 +88,13 @@ export default function NotificationsPage() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.25, delay: i * 0.03 }}
-                  onClick={() => {
-                    markAsRead(n.id);
-                    setReadIds(getReadIds());
-                  }}
+                  onClick={() => !isRead && markRead(n.id)}
                   className="text-left"
                 >
                   <Card
                     className={cn(
                       "flex items-start gap-3 p-3 transition-colors",
-                      !isRead && "bg-primary/[0.03] ring-1 ring-primary/10"
+                      !isRead && "bg-primary/3 ring-1 ring-primary/10"
                     )}
                   >
                     <span className={cn("flex size-8 shrink-0 items-center justify-center rounded-lg", meta.className)}>
@@ -128,8 +105,10 @@ export default function NotificationsPage() {
                         <p className="truncate text-sm font-medium">{n.title}</p>
                         {!isRead && <span className="size-1.5 shrink-0 rounded-full bg-primary" />}
                       </div>
-                      <p className="text-sm text-muted-foreground">{n.description}</p>
-                      <p className="mt-0.5 text-xs text-muted-foreground/70">{timeAgo(n.timestamp)}</p>
+                      <p className="text-sm text-muted-foreground">{n.message}</p>
+                      <p className="mt-0.5 text-xs text-muted-foreground/70">
+                        {timeAgo(n.sentAt ?? n.createdAt)}
+                      </p>
                     </div>
                   </Card>
                 </motion.button>
