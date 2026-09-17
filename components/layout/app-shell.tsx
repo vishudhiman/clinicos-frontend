@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { motion } from "framer-motion";
@@ -9,6 +10,7 @@ import { Sidebar, MobileSidebar } from "@/components/layout/sidebar";
 import { Topbar } from "@/components/layout/topbar";
 import { UserMenu } from "@/components/layout/user-menu";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { PatientDesktopNav, PatientBottomNav } from "@/components/layout/patient-nav";
 
 const AUTH_PATHS = ["/login", "/signup"];
 
@@ -50,14 +52,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-full flex-1 flex-col">
-      <header className="sticky top-0 z-20 flex h-14 items-center justify-between border-b border-border bg-background/80 px-4 backdrop-blur-sm">
-        <div className="flex items-center gap-2">
+      <header className="sticky top-0 z-20 flex h-14 items-center justify-between gap-3 border-b border-border bg-background/80 px-4 backdrop-blur-sm">
+        <Link href="/" className="flex shrink-0 items-center gap-2">
           <span className="flex size-7 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <HeartPulse className="size-4" aria-hidden="true" />
           </span>
-          <span className="text-sm font-semibold tracking-tight">ClinicOS</span>
-        </div>
-        <div className="flex items-center gap-1">
+          <span className="hidden text-sm font-semibold tracking-tight sm:inline">ClinicOS</span>
+        </Link>
+        <PatientDesktopNav patientId={session?.user.patientId} />
+        <div className="flex shrink-0 items-center gap-1">
           <ThemeToggle />
           {session && <UserMenu />}
         </div>
@@ -67,10 +70,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         initial={{ opacity: 0, y: 6 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.25, ease: "easeOut" }}
-        className="flex flex-1 flex-col"
+        className="flex flex-1 flex-col pb-16 md:pb-0"
       >
         {children}
       </motion.main>
+      <PatientBottomNav patientId={session?.user.patientId} />
     </div>
   );
 }

@@ -41,8 +41,14 @@ export interface Appointment {
   endTime: string;
   status: "PENDING" | "CONFIRMED" | "CANCELLED" | "COMPLETED" | "NO_SHOW";
   notes: string | null;
+  createdAt: string;
   doctor: { id: string; name: string; specialty: string };
   patient: { id: string; name: string; phoneNumber: string | null };
+}
+
+export interface Slot {
+  startTime: string;
+  endTime: string;
 }
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
@@ -98,4 +104,36 @@ export function updateDoctor(
 
 export function listAppointments(): Promise<Appointment[]> {
   return apiFetch<Appointment[]>("/appointments");
+}
+
+export function getDoctorAvailability(doctorId: string, date: Date): Promise<{ slots: Slot[] }> {
+  const isoDate = date.toISOString().slice(0, 10);
+  return apiFetch<{ slots: Slot[] }>(`/doctors/${doctorId}/availability?date=${isoDate}`);
+}
+
+export function bookAppointment(input: {
+  doctorId: string;
+  patientId: string;
+  startTime: string;
+  endTime: string;
+}): Promise<Appointment> {
+  return apiFetch<Appointment>("/appointments", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function cancelAppointment(id: string): Promise<Appointment> {
+  return apiFetch<Appointment>(`/appointments/${id}/cancel`, { method: "POST" });
+}
+
+export function rescheduleAppointment(
+  id: string,
+  newStartTime: string,
+  newEndTime: string
+): Promise<Appointment> {
+  return apiFetch<Appointment>(`/appointments/${id}/reschedule`, {
+    method: "POST",
+    body: JSON.stringify({ newStartTime, newEndTime }),
+  });
 }
