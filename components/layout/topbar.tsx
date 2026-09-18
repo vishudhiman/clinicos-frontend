@@ -9,6 +9,7 @@ const TITLES: Record<string, string> = {
   "/dashboard": "Dashboard",
   "/appointments": "Appointments",
   "/doctors": "Doctors",
+  "/profile": "Profile",
 };
 
 export function Topbar({ onMenuClick }: { onMenuClick: () => void }) {

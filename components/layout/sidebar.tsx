@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   CalendarDays,
   Stethoscope,
+  UserRound,
   LogOut,
   X,
   HeartPulse,
@@ -18,6 +19,7 @@ const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/appointments", label: "Appointments", icon: CalendarDays },
   { href: "/doctors", label: "Doctors", icon: Stethoscope },
+  { href: "/profile", label: "Profile", icon: UserRound },
 ];
 
 function Brand() {

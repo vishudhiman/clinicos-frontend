@@ -184,3 +184,21 @@ export function markAllNotificationsRead(patientId: string): Promise<{ ok: true 
     body: JSON.stringify({ patientId }),
   });
 }
+
+export interface CalendarStatus {
+  connected: boolean;
+  calendarId: string | null;
+}
+
+export function getCalendarStatus(doctorId: string): Promise<CalendarStatus> {
+  return apiFetch<CalendarStatus>(`/doctors/${doctorId}/calendar/status`);
+}
+
+/** Backend returns the Google consent URL as JSON (not a redirect) so the caller can navigate — see routes/calendar.ts. */
+export function getCalendarConnectUrl(doctorId: string): Promise<{ url: string }> {
+  return apiFetch<{ url: string }>(`/doctors/${doctorId}/calendar/connect`);
+}
+
+export function disconnectCalendar(doctorId: string): Promise<CalendarStatus> {
+  return apiFetch<CalendarStatus>(`/doctors/${doctorId}/calendar/disconnect`, { method: "POST" });
+}

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { motion } from "framer-motion";
 import { toast } from "sonner";
-import { Pencil, Check, X, Mail, Phone, CalendarDays } from "lucide-react";
+import { Pencil, Check, X, Mail, Phone, CalendarDays, CalendarClock } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { getProfile, updateProfile, type ProfileData } from "@/lib/profile";
+import { getCalendarStatus, getCalendarConnectUrl, disconnectCalendar, type CalendarStatus } from "@/lib/api";
 
 function initials(name?: string | null) {
   if (!name) return "?";
@@ -29,6 +30,10 @@ export default function ProfilePage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [calendarStatus, setCalendarStatus] = useState<CalendarStatus | null>(null);
+  const [calendarLoading, setCalendarLoading] = useState(false);
+  const doctorId = session?.user.role === "DOCTOR" ? session.user.doctorId : null;
+
   useEffect(() => {
     getProfile()
       .then((p) => {
@@ -39,6 +44,55 @@ export default function ProfilePage() {
       .catch((err) => setError(err instanceof Error ? err.message : "Failed to load profile"))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    if (!doctorId) return;
+    getCalendarStatus(doctorId)
+      .then(setCalendarStatus)
+      .catch(() => setCalendarStatus({ connected: false, calendarId: null }));
+  }, [doctorId]);
+
+  // Google's OAuth redirect lands back here as ?calendar=connected|error (see
+  // backend routes/calendar.ts's callback) — surface it once, then clean up the URL.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const result = params.get("calendar");
+    if (!result) return;
+
+    if (result === "connected") {
+      toast.success("Google Calendar connected");
+      if (doctorId) getCalendarStatus(doctorId).then(setCalendarStatus).catch(() => {});
+    } else if (result === "error") {
+      toast.error("Couldn't connect Google Calendar. Please try again.");
+    }
+    window.history.replaceState(null, "", window.location.pathname);
+  }, [doctorId]);
+
+  async function handleConnectCalendar() {
+    if (!doctorId) return;
+    setCalendarLoading(true);
+    try {
+      const { url } = await getCalendarConnectUrl(doctorId);
+      window.location.href = url;
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to start Google Calendar connection");
+      setCalendarLoading(false);
+    }
+  }
+
+  async function handleDisconnectCalendar() {
+    if (!doctorId) return;
+    setCalendarLoading(true);
+    try {
+      const updated = await disconnectCalendar(doctorId);
+      setCalendarStatus(updated);
+      toast.success("Google Calendar disconnected");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Failed to disconnect Google Calendar");
+    } finally {
+      setCalendarLoading(false);
+    }
+  }
 
   async function handleSave() {
     setSubmitting(true);
@@ -160,6 +214,37 @@ export default function ProfilePage() {
               </div>
             )}
           </Card>
+
+          {doctorId && (
+            <Card className="mt-4 p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <CalendarClock className="size-5 text-muted-foreground" />
+                  <div>
+                    <h2 className="text-sm font-semibold">Google Calendar</h2>
+                    <p className="text-sm text-muted-foreground">
+                      Sync your confirmed appointments to your Google Calendar automatically.
+                    </p>
+                  </div>
+                </div>
+                <Badge variant={calendarStatus?.connected ? "secondary" : "outline"}>
+                  {calendarStatus === null ? "…" : calendarStatus.connected ? "Connected" : "Not connected"}
+                </Badge>
+              </div>
+
+              <div className="mt-4 border-t border-border pt-4">
+                {calendarStatus?.connected ? (
+                  <Button size="sm" variant="outline" onClick={handleDisconnectCalendar} disabled={calendarLoading}>
+                    {calendarLoading ? "Disconnecting..." : "Disconnect"}
+                  </Button>
+                ) : (
+                  <Button size="sm" onClick={handleConnectCalendar} disabled={calendarLoading || calendarStatus === null}>
+                    {calendarLoading ? "Redirecting..." : "Connect Google Calendar"}
+                  </Button>
+                )}
+              </div>
+            </Card>
+          )}
         </motion.div>
       )}
     </div>
