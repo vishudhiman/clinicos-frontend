@@ -36,11 +36,11 @@ export default function MyAppointmentsPage() {
     if (!session?.user.patientId) return;
     setLoading(true);
     try {
-      const [all, notifs] = await Promise.all([
+      const [mine, notifs] = await Promise.all([
         listAppointments(),
         listNotifications(session.user.patientId),
       ]);
-      setAppointments(all.filter((a) => a.patient.id === session.user.patientId));
+      setAppointments(mine);
       setNotifications(notifs);
       setError(null);
     } catch (err) {
